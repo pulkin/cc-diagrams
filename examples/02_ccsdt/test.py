@@ -127,7 +127,7 @@ class H2Tests(unittest.TestCase):
         cls.e_occ = numpy.diag(cls.hamiltonian["oo"])
         cls.e_vir = numpy.diag(cls.hamiltonian["vv"])
 
-    def _test_equations(self):
+    def test_equations(self):
         """Tests coupled-cluster singles and doubles equations."""
         r1, r2, e2 = equations_sd(t1=self.ccsd.t1, t2=self.ccsd.t2, **self.hamiltonian)
 
