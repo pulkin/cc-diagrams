@@ -273,3 +273,74 @@ class OTests(unittest.TestCase):
         )
         ampl, e3 = kernel(ampl, self.hamiltonian, equations_sdt, tolerance=1e-6)
         testing.assert_allclose(self.mf.e_tot + e3, -74.829163218204, atol=1e-4)
+
+
+class H2OTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        """
+        H20 molecule test vs ORCA-MRCC data.
+
+        ORCA reference energies:
+
+        HF    -75.97354725
+        CCS   --
+        CCSD  -76.185805898396
+        CCSDT -76.189327633478
+        """
+        cls.mol = gto.Mole()
+        cls.mol.verbose = 0
+        cls.mol.atom = "O 0 0 0; H  0.758602  0.000000  0.504284; H  0.758602  0.000000  -0.504284"
+        cls.mol.unit = "angstrom"
+
+        cls.mol.basis = 'cc-pvdz'
+        cls.mol.build()
+
+        cls.mf = scf.UHF(cls.mol)
+        cls.mf.conv_tol = 1e-11
+        cls.mf.kernel()
+        testing.assert_allclose(cls.mf.e_tot, -75.97354725, atol=1e-4)
+
+        cls.ccsd = UCCSD(cls.mf, frozen=1)
+        cls.ccsd.kernel()
+
+        cls.nocc, cls.nvir = cls.ccsd.t1.shape
+        eris = cls.ccsd.ao2mo()
+
+        cls.hamiltonian = dict(
+            ov=eris.fock[:cls.nocc, cls.nocc:],
+            vo=eris.fock[cls.nocc:, :cls.nocc],
+            oo=eris.fock[:cls.nocc, :cls.nocc],
+            vv=eris.fock[cls.nocc:, cls.nocc:],
+            oooo=eris.oooo,
+            oovo=-numpy.transpose(eris.ooov, (0, 1, 3, 2)),
+            oovv=eris.oovv,
+            ovoo=eris.ovoo,
+            ovvo=-numpy.transpose(eris.ovov, (0, 1, 3, 2)),
+            ovvv=eris.ovvv,
+            vvoo=numpy.transpose(eris.oovv, (2, 3, 0, 1)),
+            vvvo=-numpy.transpose(eris.ovvv, (2, 3, 1, 0)),
+            vvvv=eris.vvvv,
+        )
+
+        cls.e_occ = numpy.diag(cls.hamiltonian["oo"])
+        cls.e_vir = numpy.diag(cls.hamiltonian["vv"])
+
+    def test_iter_sd(self):
+        """CCSD iterations."""
+        ampl = dict(
+            t1=numpy.zeros((self.nocc, self.nvir)),
+            t2=numpy.zeros((self.nocc, self.nocc, self.nvir, self.nvir)),
+        )
+        ampl, e2 = kernel(ampl, self.hamiltonian, equations_sd, tolerance=1e-6)
+        testing.assert_allclose(self.mf.e_tot + e2, -76.185805898396, atol=1e-4)
+
+    def test_iter_sdt(self):
+        """CCSDT iterations."""
+        ampl = dict(
+            t1=self.ccsd.t1,
+            t2=self.ccsd.t2,
+            t3=numpy.zeros((self.nocc, self.nocc, self.nocc, self.nvir, self.nvir, self.nvir)),
+        )
+        ampl, e3 = kernel(ampl, self.hamiltonian, equations_sdt, tolerance=1e-6)
+        testing.assert_allclose(self.mf.e_tot + e3, -76.189327633478, atol=1e-4)
