@@ -1,7 +1,7 @@
 from raw import equations_s, equations_sd, equations_sdt
 
 from pyscf import gto, scf
-from pyscf.cc.uccsd_slow import UCCSD
+from pyscf.cc.uccsd_slow import UCCSD, update_amps
 from pyscf.lib.diis import DIIS
 
 import numpy
@@ -106,22 +106,22 @@ class H2Tests(unittest.TestCase):
         cls.ccsd.kernel()
 
         cls.nocc, cls.nvir = cls.ccsd.t1.shape
-        eris = cls.ccsd.ao2mo()
+        cls.eris = cls.ccsd.ao2mo()
 
         cls.hamiltonian = dict(
-            ov=eris.fock[:cls.nocc, cls.nocc:],
-            vo=eris.fock[cls.nocc:, :cls.nocc],
-            oo=eris.fock[:cls.nocc, :cls.nocc],
-            vv=eris.fock[cls.nocc:, cls.nocc:],
-            oooo=eris.oooo,
-            oovo=-numpy.transpose(eris.ooov, (0, 1, 3, 2)),
-            oovv=eris.oovv,
-            ovoo=eris.ovoo,
-            ovvo=-numpy.transpose(eris.ovov, (0, 1, 3, 2)),
-            ovvv=eris.ovvv,
-            vvoo=numpy.transpose(eris.oovv, (2, 3, 0, 1)),
-            vvvo=-numpy.transpose(eris.ovvv, (2, 3, 1, 0)),
-            vvvv=eris.vvvv,
+            ov=cls.eris.fock[:cls.nocc, cls.nocc:],
+            vo=cls.eris.fock[cls.nocc:, :cls.nocc],
+            oo=cls.eris.fock[:cls.nocc, :cls.nocc],
+            vv=cls.eris.fock[cls.nocc:, cls.nocc:],
+            oooo=cls.eris.oooo,
+            oovo=-numpy.transpose(cls.eris.ooov, (0, 1, 3, 2)),
+            oovv=cls.eris.oovv,
+            ovoo=cls.eris.ovoo,
+            ovvo=-numpy.transpose(cls.eris.ovov, (0, 1, 3, 2)),
+            ovvv=cls.eris.ovvv,
+            vvoo=numpy.transpose(cls.eris.oovv, (2, 3, 0, 1)),
+            vvvo=-numpy.transpose(cls.eris.ovvv, (2, 3, 1, 0)),
+            vvvv=cls.eris.vvvv,
         )
 
         cls.e_occ = numpy.diag(cls.hamiltonian["oo"])
@@ -129,15 +129,17 @@ class H2Tests(unittest.TestCase):
 
     def test_equations(self):
         """Tests coupled-cluster singles and doubles equations."""
-        r1, r2, e2 = equations_sd(t1=self.ccsd.t1, t2=self.ccsd.t2, **self.hamiltonian)
+        _, t1, t2 = self.ccsd.init_amps(self.eris)
 
-        testing.assert_allclose(e2, self.ccsd.e_corr)
-        testing.assert_allclose(r1, 0, atol=1e-8)
-        testing.assert_allclose(r2, 0, atol=1e-8)
+        ref_t1, ref_t2 = update_amps(self.ccsd, t1, t2, self.eris)
 
-        dt1, dt2 = res2amps((r1, r2), self.e_occ, self.e_vir)
-        testing.assert_allclose(dt1, 0, atol=1e-8)
-        testing.assert_allclose(dt2, 0, atol=1e-8)
+        r1, r2, e2 = equations_sd(t1=t1, t2=t2, **self.hamiltonian)
+        dt1, dt2 = res2amps((r1, r2), numpy.diag(self.hamiltonian["oo"]), numpy.diag(self.hamiltonian["vv"]))
+        t1 += dt1
+        t2 += dt2
+
+        testing.assert_allclose(t1, ref_t1, atol=1e-8)
+        testing.assert_allclose(t2, ref_t2, atol=1e-8)
 
     def test_iter_s(self):
         """CCS iterations."""
