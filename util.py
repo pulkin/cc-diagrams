@@ -84,7 +84,7 @@ class OneToOne(dict):
         if key not in self:
             raise KeyError("Missing key {}".format(repr(key)))
         val = self[key]
-        del self[key]
+        dict.__delitem__(self, key)
         del self.__bw__[val]
 
     def __repr__(self):
