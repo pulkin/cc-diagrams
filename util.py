@@ -209,15 +209,22 @@ def e(*args):
     return numpy.einsum(*args, optimize=True)
 
 
-def p_count(permutation):
+def p_count(permutation, destination=None):
     """
     Counts permutations.
     Args:
-        permutation (iterable): a list of unique integers from 0 to N-1;
+        permutation (iterable): a list of unique integers from 0 to N-1 or any iterable of unique entries if `normal`
+        is provided;
+
+        destination (iterable): ordered elements from `permutation`;
 
     Returns:
         The number of permutations needed to achieve this list from a 0..N-1 series.
     """
+    if destination is None:
+        destination = sorted(permutation)
+    destination = dict((element, i) for i, element in enumerate(destination))
+    permutation = tuple(destination[i] for i in permutation)
     visited = [False] * len(permutation)
     result = 0
     for i in range(len(permutation)):
