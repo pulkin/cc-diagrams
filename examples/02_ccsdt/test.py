@@ -43,8 +43,7 @@ class H2Tests(unittest.TestCase):
 
     def test_iter_s(self):
         """CCS iterations."""
-        ampl = dict(t1=0)
-        ampl, e1 = kernel(ampl, self.eris, equations_s)
+        ampl, e1 = kernel(self.eris, equations_s, ("t1",))
 
         testing.assert_allclose(e1, 0, atol=1e-8)
         # TODO: atol=1e-8 does not work
@@ -52,8 +51,7 @@ class H2Tests(unittest.TestCase):
 
     def test_iter_sd(self):
         """CCSD iterations."""
-        ampl = dict(t1=0, t2=0)
-        ampl, e2 = kernel(ampl, self.eris, equations_sd)
+        ampl, e2 = kernel(self.eris, equations_sd, ("t1", "t2"))
 
         testing.assert_allclose(e2, self.ccsd.e_corr)
         testing.assert_allclose(ampl["t1"], self.ccsd.t1, atol=1e-8)
@@ -61,8 +59,7 @@ class H2Tests(unittest.TestCase):
 
     def test_iter_sdt(self):
         """CCSDT iterations (there are no triple excitations for a 2-electron system)."""
-        ampl = dict(t1=0, t2=0, t3=0)
-        ampl, e3 = kernel(ampl, self.eris, equations_sdt)
+        ampl, e3 = kernel(self.eris, equations_sdt, ("t1", "t2", "t3"))
 
         testing.assert_allclose(e3, self.ccsd.e_corr, atol=1e-8)
         testing.assert_allclose(ampl["t1"], self.ccsd.t1, atol=1e-8)
@@ -117,21 +114,18 @@ class OTests(unittest.TestCase):
 
     def test_iter_s(self):
         """CCS iterations."""
-        ampl = dict(t1=0)
-        ampl, e1 = kernel(ampl, self.eris, equations_s, tolerance=1e-6)
+        ampl, e1 = kernel(self.eris, equations_s, ("t1",), tolerance=1e-6)
         # TODO: MRCC energy is way off expected
         testing.assert_allclose(self.mf.e_tot + e1, -74.841686696943, atol=1e-4)
 
     def test_iter_sd(self):
         """CCSD iterations."""
-        ampl = dict(t1=0, t2=0)
-        ampl, e2 = kernel(ampl, self.eris, equations_sd, tolerance=1e-6)
+        ampl, e2 = kernel(self.eris, equations_sd, ("t1", "t2"), tolerance=1e-6)
         testing.assert_allclose(self.mf.e_tot + e2, -74.819248718982, atol=1e-4)
 
     def test_iter_sdt(self):
         """CCSDT iterations."""
-        ampl = dict(t1=0, t2=0, t3=0)
-        ampl, e3 = kernel(ampl, self.eris, equations_sdt, tolerance=1e-6)
+        ampl, e3 = kernel(self.eris, equations_sdt, ("t1", "t2", "t3"), tolerance=1e-6)
         testing.assert_allclose(self.mf.e_tot + e3, -74.829163218204, atol=1e-4)
 
 
@@ -168,12 +162,10 @@ class H2OTests(unittest.TestCase):
 
     def test_iter_sd(self):
         """CCSD iterations."""
-        ampl = dict(t1=0, t2=0)
-        ampl, e2 = kernel(ampl, self.eris, equations_sd, tolerance=1e-6)
+        ampl, e2 = kernel(self.eris, equations_sd, ("t1", "t2"), tolerance=1e-6)
         testing.assert_allclose(self.mf.e_tot + e2, -76.185805898396, atol=1e-4)
 
     def test_iter_sdt(self):
         """CCSDT iterations."""
-        ampl = dict(t1=0, t2=0, t3=0)
-        ampl, e3 = kernel(ampl, self.eris, equations_sdt, tolerance=1e-6)
+        ampl, e3 = kernel(self.eris, equations_sdt, ("t1", "t2", "t3"), tolerance=1e-6)
         testing.assert_allclose(self.mf.e_tot + e3, -76.189327633478, atol=1e-4)

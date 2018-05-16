@@ -83,13 +83,13 @@ def eris_hamiltonian(eris):
     )
 
 
-def kernel(amplitudes, hamiltonian, equations, tolerance=1e-9, debug=False, diis=True):
+def kernel(hamiltonian, equations, amplitudes, tolerance=1e-9, debug=False, diis=True):
     """
     Coupled-cluster iterations.
     Args:
-        amplitudes (dict): starting amplitudes;
         hamiltonian (dict): hamiltonian matrix elements or pyscf ERIS;
         equations (callable): coupled-cluster equations;
+        amplitudes (dict, iterable): starting amplitudes;
         tolerance (float): convergence criterion;
         debug (bool): prints iterations if True;
         diis (bool, DIIS): converger for iterations;
@@ -108,6 +108,9 @@ def kernel(amplitudes, hamiltonian, equations, tolerance=1e-9, debug=False, diis
 
     input_args = inspect.getargspec(equations).args
     hamiltonian = {k: v for k, v in hamiltonian.items() if k in input_args}
+
+    if isinstance(amplitudes, (list, tuple)):
+        amplitudes = {k: 0 for k in amplitudes}
 
     while tol is None or tol > tolerance:
         hamiltonian.update(amplitudes)
