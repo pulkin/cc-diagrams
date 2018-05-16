@@ -1,6 +1,7 @@
 from collections import Counter
 import numpy
 import itertools
+from numbers import Number
 
 
 class StrictCounter(Counter):
@@ -206,6 +207,9 @@ def d2t(d):
 
 def e(*args):
     """Numpy optimized einsum."""
+    for i in args:
+        if isinstance(i, Number) and i == 0:
+            return 0
     return numpy.einsum(*args, optimize=True)
 
 
@@ -267,7 +271,8 @@ def p(spec, tensor):
         >>> testing.assert_allclose(s, a)
         True
     """
-    # print("[{}]".format(spec))
+    if isinstance(tensor, Number):
+        return tensor
     result = tensor.copy()
 
     perm_mask = list(i != '.' for i in spec)
@@ -286,10 +291,8 @@ def p(spec, tensor):
             perm_tensor = numpy.transpose(tensor, dims)
 
             if p_count(order) % 2 == 0:
-                # print("  + {} {}".format(this_spec, repr(dims)))
                 result += perm_tensor
             else:
-                # print("  - {} {}".format(this_spec, repr(dims)))
                 result -= perm_tensor
         included.add(this_spec)
     return result
