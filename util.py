@@ -139,6 +139,66 @@ class OneToOne(dict):
         return OneToOne(self.__bw__)
 
 
+class Intervals(object):
+    def __init__(self, *args):
+        """
+        A class representing a set of (closed) intervals in 1D.
+        Args:
+            *args (Intervals, iterable): a set of intervals to initialize with.
+        """
+        self.__s__ = []
+        self.__e__ = []
+        if len(args) == 2 and isinstance(args[0], (int, float)):
+            args = (args,)
+        for i in args:
+            self.add(*i)
+
+    def __iter__(self):
+        return iter(zip(self.__s__, self.__e__))
+
+    def add(self, fr, to):
+        """
+        Adds an interval.
+        Args:
+            fr (float): from;
+            to (float): to;
+        """
+        fr, to = min(fr, to), max(fr, to)
+        new_s = []
+        new_e = []
+        for s, e in self:
+            if e < fr or s > to:
+                new_s.append(s)
+                new_e.append(e)
+            elif s >= fr and e <= to:
+                pass
+            else:
+                fr = min(fr, s)
+                to = max(to, e)
+        new_s.append(fr)
+        new_e.append(to)
+        self.__s__ = new_s
+        self.__e__ = new_e
+
+    def __and__(self, other):
+        if not isinstance(other, Intervals):
+            other = Intervals(*other)
+        result = []
+        for s1, e1 in self:
+            for s2, e2 in other:
+                s = max(s1, s2)
+                e = min(e1, e2)
+                if s <= e:
+                    result.append((s, e))
+        return Intervals(*result)
+
+    def __nonzero__(self):
+        return bool(self.__s__)
+
+    def __repr__(self):
+        return "Intervals({})".format(", ".join("({}, {})".format(i, j) for i, j in self))
+
+
 def d2t(d):
     """Dict into tuple."""
     return tuple(sorted(d.items()))
